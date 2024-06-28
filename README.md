@@ -8,7 +8,7 @@
     :::tip Nota
     Seleccionar las opciones por defecto.
     :::
-2. crear base de datos **speaksmarter**.
+2. Crear base de datos **speaksmarter**.
 3. Configurar el archivo de variables de entorno **.env**:
     ```env title=".env"
     APP_NAME=Speaksmarter
@@ -23,9 +23,39 @@
     DB_PASSWORD=    
     # ...
     ```
+4. Instalar **Jetstream** e **Inertia**:
+    ```bash
+    composer require laravel/jetstream
+    php artisan jetstream:install inertia
+    ```
+5. Instalar sistema de roles y permisos con **Laravel-Spatie**:
+    ```bash
+    composer require spatie/laravel-permission
+    ```
+6. Publicar las migraciones de **Laravel-Spatie** y el archivo de configuración **permission**:
+    ```bash
+    php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+    ```
+7. Agregar el trade **HasRoles** al modelo **User**:
+    ```php title="app\Models\User.php"
+    // ...
+    use Spatie\Permission\Traits\HasRoles;
+    // ...
+    class User extends Authenticatable
+    {
+        // ...
+        use HasRoles;
+        // ...
+    }
+    ```
+8. Ejecutar las migraciones:
+    ```bash
+    php artisan migrate
+    ```
+
 
 ## Entidades principales
-+ Módulo Usuarios y Roles:
++ Módulo Usuarios, Roles y Permisos:
     + USERS
     + ROLES
     + PERMMISIONS
@@ -169,18 +199,142 @@
         }
     }    
     ```
-12. Programar seeder principal **DatabaseSeeder**:
-    ```php title="database\seeders\DatabaseSeeder.php"
+12. Ejecutar migraciones:
+    ```bash
+    php artisan migrate
+    ```
+
+## Modelar la estructura básica para el módulo de usuarios, roles y permisos
+1. Crear seeders **RoleSeeder** y **UserSeeder**:
+    ```bash
+    php artisan make:seeder RoleSeeder
+    php artisan make:seeder UserSeeder
+    ```
+2. Programar seeder **RoleSeeder**:
+    ```php title="database\seeders\RoleSeeder.php"
     // ...
+    use Spatie\Permission\Models\Permission;
+    use Spatie\Permission\Models\Role;
+    // ...
+    class RoleSeeder extends Seeder
+    {
+        // ...
+        public function run(): void
+        {
+            $role_admin = Role::create(['name' => 'admin']);
+            $role_editor = Role::create(['name' => 'editor']);
+
+            $permission_create_role = Permission::create(['name' => 'create roles']);
+            $permission_read_role = Permission::create(['name' => 'read roles']);
+            $permission_update_role = Permission::create(['name' => 'update roles']);
+            $permission_delete_role = Permission::create(['name' => 'delete roles']);
+
+            $permission_create_lesson = Permission::create(['name' => 'create lessons']);
+            $permission_read_lesson = Permission::create(['name' => 'read lessons']);
+            $permission_update_lesson = Permission::create(['name' => 'update lessons']);
+            $permission_delete_lesson = Permission::create(['name' => 'delete lessons']);
+
+            $permission_create_category = Permission::create(['name' => 'create categories']);
+            $permission_read_category = Permission::create(['name' => 'read categories']);
+            $permission_update_category = Permission::create(['name' => 'update categories']);
+            $permission_delete_category = Permission::create(['name' => 'delete categories']);
+
+            $permissions_admin = [
+                $permission_create_role,
+                $permission_read_role,
+                $permission_update_role,
+                $permission_delete_role,
+                $permission_create_lesson,
+                $permission_read_lesson,
+                $permission_update_lesson,
+                $permission_delete_lesson,
+                $permission_create_category,
+                $permission_read_category,
+                $permission_update_category,
+                $permission_delete_category
+            ];
+            $permissions_editor = [
+                $permission_create_lesson,
+                $permission_read_lesson,
+                $permission_update_lesson,
+                $permission_delete_lesson,
+                $permission_create_category,
+                $permission_read_category,
+                $permission_update_category,
+                $permission_delete_category
+            ];
+
+            $role_admin->syncPermissions($permissions_admin);
+            $role_editor->syncPermissions($permissions_editor);
+        }
+    }
+    ```
+3. Programar seeder **UserSeeder**:
+    ```php title="database\seeders\UserSeeder.php"
+    // ...
+    use App\Models\User;
+    use Illuminate\Support\Facades\Hash;
+    // ...
+
+    class UserSeeder extends Seeder
+    {
+        // ...
+        public function run(): void
+        {
+            $admin = User::create([
+                'name' => 'admin',
+                'email' => 'admin@speaksmarter.net',
+                'password' => Hash::make('admin'),
+            ])->assignRole('admin');
+
+            $editor = User::create([
+                'name' => 'editor',
+                'email' => 'editor@speaksmarter.net',
+                'password' => Hash::make('editor'),
+            ])->assignRole('editor');
+        }
+    }
+    ```
+4. Modificar el seeder principal **DatabaseSeeder** para incluir los seeders **LevelSeeder** (Creado en el modelado de lecciones), **RoleSeeder** y **UserSeeder**:
+    ```php title="database\seeders\DatabaseSeeder.php"
     public function run(): void
     {
-        $this->call(LevelSeeder::class);
+        $this->call([
+            LevelSeeder::class,
+            RoleSeeder::class,
+            UserSeeder::class
+        ]);
+    }
+    ```
+5. Poner a disposición de los componentes vue de inertia los roles y permisos modificando el middleware **HandleInertiaRequests** para pasar por props la información indicada a los componentes:
+    ```php title="app\Http\Middleware\HandleInertiaRequests.php"
+    // ...
+    public function share(Request $request): array
+    {
+        return array_merge(parent::share($request), [
+            'user.roles' => $request->user() ? $request->user()->roles()->pluck('name') : [],
+            'user.permissions' => $request->user() ? $request->user()->getPermissionsViaRoles()->pluck('name') : []
+        ]);
     }
     // ...
     ```
-13. Ejecutar migraciones:
-    ```bash
-    php artisan migrate
-
+    :::tip Nota
+    + Para acceder a los props desde cualquier vista de inertia:
+    ```html
+    {{ $page.props }}
     ```
-14. mmm
+    + Para restringir un bloque de código html según el rol:
+    ```html
+    <button v-if="$page.props.user.permissions.includes('nombre del permiso')">Crear rol</button>
+    ```
+    :::
+6. Ejecutar los seeder:
+    ```bash
+    php artisan db:seed
+    ```
+7. Instalar las dependencias npm:
+    ```bash
+    npm i
+    npm run dev
+    ```
+
