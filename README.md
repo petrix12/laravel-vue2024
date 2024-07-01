@@ -92,6 +92,7 @@
             $table->string('image_uri', 255)->nullable();
             $table->string('content_uri', 255);
             $table->string('pdf_uri', 255);
+            $table->boolean('is_free')->default(false);
             $table->unsignedBigInteger('level_id');
             $table->foreign('level_id')->references('id')->on('levels')->onUpdate('cascade')->onDelete('cascade');
             $table->timestamps();
@@ -418,10 +419,12 @@
 
     class CategoryController extends Controller
     { 
+        const NOMBER_OF_ITEMS_PER_PAGE = 25;
+
         public function index()
         {
-            define('NOMBER_OF_ITEMS_PER_PAGE', 25);
-            $categories = Category::paginate(NOMBER_OF_ITEMS_PER_PAGE);
+            //define('NOMBER_OF_ITEMS_PER_PAGE', 25);
+            $categories = Category::paginate(self::NOMBER_OF_ITEMS_PER_PAGE);
             return inertia('Categories/Index', compact('categories'));
         }
         
@@ -533,280 +536,310 @@
     </div>
     <!-- ... -->
     ```
-11. Crear vista **Categories/Index**:
-    ```html title="resources\js\Pages\Categories\Index.vue"
-    <script>
-    export default {
-        name: 'CategoriesIndex'
-    }
-    </script>
-
-    <script setup>
-    import AppLayout from '@/Layouts/AppLayout.vue'
-    import { Link } from '@inertiajs/vue3'
-    import { Inertia } from '@inertiajs/inertia'
-
-    defineProps({
-        categories: {
-            type: Object,
-            required: true
+11. Diseñar las vistas para las categorias:
+    1. Crear vista **Categories/Index**:
+        ```html title="resources\js\Pages\Categories\Index.vue"
+        <script>
+        export default {
+            name: 'CategoriesIndex'
         }
-    })
+        </script>
 
-    const deleteCategory = (id) => {
-        if(confirm('Are you sure?')) {
-            Inertia.delete(route('categories.destroy', id))
+        <script setup>
+        import AppLayout from '@/Layouts/AppLayout.vue'
+        import { Link } from '@inertiajs/vue3'
+        import { Inertia } from '@inertiajs/inertia'
+
+        defineProps({
+            categories: {
+                type: Object,
+                required: true
+            }
+        })
+
+        const deleteCategory = (id) => {
+            if(confirm('Are you sure?')) {
+                Inertia.delete(route('categories.destroy', id))
+            }
         }
-    }
-    </script>
+        </script>
 
-    <template>
-        <AppLayout title="Index category">
-            <template #header>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Categories
-                </h2>
-            </template>
-            <div class="py-12 ">
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div                 
-                        v-if="$page.props.user.permissions.includes('create categories')"
-                        class="p-6 bg-white border-b border-gray-200"
-                    >
-                        <div class="flex justify-between">
-                            <Link 
-                                :href="route('categories.create')" 
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Create category
-                            </Link>
+        <template>
+            <AppLayout title="Index category">
+                <template #header>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Categories
+                    </h2>
+                </template>
+                <div class="py-12 ">
+                    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div                 
+                            v-if="$page.props.user.permissions.includes('create categories')"
+                            class="p-6 bg-white border-b border-gray-200"
+                        >
+                            <div class="flex justify-between">
+                                <Link 
+                                    :href="route('categories.create')" 
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                >
+                                    Create category
+                                </Link>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mt-4">
-                        <div class="flex flex-col">
-                            <div class="overflow-x-auto sm:mx-0.5 lg:mx-0.5">
-                                <div class="py-2 inline-block min-w-full sm:px-6 lg:px-8">
-                                    <div class="overflow-hidden">
-                                        <table class="min-w-full">
-                                            <thead class="bg-white border-b">
-                                                <tr>
-                                                <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
-                                                    #
-                                                </th>
-                                                <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
-                                                    Name
-                                                </th>
-                                                <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
-                                                    Edit
-                                                </th>
-                                                <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
-                                                    Delete
-                                                </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr class="bg-gray-100 border-b" v-for="category in categories.data" :key="category.id">
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                        {{ category.id }}
-                                                    </td>
-                                                    <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                                                        {{ category.name }}
-                                                    </td>
-                                                    <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                                                        <Link 
-                                                            v-if="$page.props.user.permissions.includes('update categories')"
-                                                            :href="route('categories.edit', category.id)" 
-                                                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                        >
-                                                            Edit
-                                                        </Link>
-                                                    </td>
-                                                    <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                                                        <Link 
-                                                            v-if="$page.props.user.permissions.includes('delete categories')"
-                                                            @click="deleteCategory(category.id)" 
-                                                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                                                        >
-                                                            Delete
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                        <div class="mt-4">
+                            <div class="flex flex-col">
+                                <div class="overflow-x-auto sm:mx-0.5 lg:mx-0.5">
+                                    <div class="py-2 inline-block min-w-full sm:px-6 lg:px-8">
+                                        <div class="overflow-hidden">
+                                            <table class="min-w-full">
+                                                <thead class="bg-white border-b">
+                                                    <tr>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        #
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Name
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Edit
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Delete
+                                                    </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr class="bg-gray-100 border-b" v-for="category in categories.data" :key="category.id">
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            {{ category.id }}
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            {{ category.name }}
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            <Link 
+                                                                v-if="$page.props.user.permissions.includes('update categories')"
+                                                                :href="route('categories.edit', category.id)" 
+                                                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            >
+                                                                Edit
+                                                            </Link>
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            <Link 
+                                                                v-if="$page.props.user.permissions.includes('delete categories')"
+                                                                @click="deleteCategory(category.id)" 
+                                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                                                            >
+                                                                Delete
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="p-6 bg-white border-b border-gray-200">
-                        <div class="flex justify-between mt-2">
-                            <Link 
-                                v-if="categories.current_page > 1"
-                                :href="categories.prev_page_url" 
-                                class="py-2 px-4 rounded"
-                            >
-                                PREV
-                            </Link>
-                            <div v-else></div>
-                            <Link 
-                                v-if="categories.current_page < categories.last_page"
-                                :href="categories.next_page_url" 
-                                class="py-2 px-4 rounded"
-                            >
-                                NEXT
-                            </Link>
-                            <div v-else></div>
+                        <div class="p-6 bg-white border-b border-gray-200">
+                            <div class="flex justify-between mt-2">
+                                <Link 
+                                    v-if="categories.current_page > 1"
+                                    :href="categories.prev_page_url" 
+                                    class="py-2 px-4 rounded"
+                                >
+                                    PREV
+                                </Link>
+                                <div v-else></div>
+                                <Link 
+                                    v-if="categories.current_page < categories.last_page"
+                                    :href="categories.next_page_url" 
+                                    class="py-2 px-4 rounded"
+                                >
+                                    NEXT
+                                </Link>
+                                <div v-else></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </AppLayout>
-    </template>
-    ```
-12. Crear vista **Categories/Create**:
-    ```html title="resources\js\Pages\Categories\Create.vue"
-    <script>
-    export default {
-        name: 'CategoriesCreate'
-    }
-    </script>
-
-    <script setup>
-    import AppLayout from '@/Layouts/AppLayout.vue'
-    import { useForm } from '@inertiajs/vue3'
-    import CategoryForm from '@/Components/Categories/Form.vue'
-
-    const form = useForm({
-        name: ''
-    })
-    </script>
-
-    <template>
-        <AppLayout title="Create category">
-            <template #header>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Create category
-                </h2>
-            </template>
-            <div class="py-12 ">
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div class="p-6 bg-white border-b border-gray-200">
-                        <CategoryForm 
-                            :form="form" 
-                            @submit="form.post(route('categories.store'))"
-                        />
-                    </div>
-                </div>
-            </div>        
-        </AppLayout>
-    </template>
-    ```
-13. Crear vista **Categories\Edit**:
-    ```html title="resources\js\Pages\Categories\Edit.vue"
-    <script>
-    export default {
-        name: 'CategoriesEdit'
-    }
-    </script>
-
-    <script setup>
-    import AppLayout from '@/Layouts/AppLayout.vue'
-    import { useForm } from '@inertiajs/vue3'
-    import CategoryForm from '@/Components/Categories/Form.vue'
-
-    const props = defineProps({
-        category: {
-            type: Object,
-            required: true
+            </AppLayout>
+        </template>
+        ```
+    2. Crear vista **Categories/Create**:
+        ```html title="resources\js\Pages\Categories\Create.vue"
+        <script>
+        export default {
+            name: 'CategoriesCreate'
         }
-    })
+        </script>
 
-    const form = useForm({
-        name: props.category.name
-    })
-    </script>
+        <script setup>
+        import AppLayout from '@/Layouts/AppLayout.vue'
+        import { useForm } from '@inertiajs/vue3'
+        import CategoryForm from '@/Components/Categories/Form.vue'
 
-    <template>
-        <AppLayout title="Edit category">
-            <template #header>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Edit category
-                </h2>
-            </template>
-            <div class="py-12 ">
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div class="p-6 bg-white border-b border-gray-200">
-                        <CategoryForm 
-                            :updating="true" 
-                            :form="form" 
-                            @submit="form.put(route('categories.update', category.id))"
-                        />
+        const form = useForm({
+            name: ''
+        })
+        </script>
+
+        <template>
+            <AppLayout title="Create category">
+                <template #header>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Create category
+                    </h2>
+                </template>
+                <div class="py-12 ">
+                    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div class="p-6 bg-white border-b border-gray-200">
+                            <CategoryForm 
+                                :form="form" 
+                                @submit="form.post(route('categories.store'))"
+                            />
+                        </div>
                     </div>
-                </div>
-            </div>        
-        </AppLayout>
-    </template>
-    ```
-14. Crear componente **Components\Categories\Form.vue**:
-    ```html title="resources\js\Components\Categories\Form.vue"
-    <script>
-    export default {
-        name: 'CategoriesForm'
-    }
-    </script>
-
-    <script setup>
-    import FormSection from '@/Components/FormSection.vue'
-    import InputError from '@/Components/InputError.vue'
-    import InputLabel from '@/Components/InputLabel.vue'
-    import PrimaryButton from '@/Components/PrimaryButton.vue'
-    import TextInput from '@/Components/TextInput.vue'
-
-    defineProps({
-        form: {
-            type: Object,
-            required: true
-        },
-        updating: {
-            type: Boolean,
-            required: false,
-            default: false
+                </div>        
+            </AppLayout>
+        </template>
+        ```
+    3. Crear vista **Categories/Edit**:
+        ```html title="resources\js\Pages\Categories\Edit.vue"
+        <script>
+        export default {
+            name: 'CategoriesEdit'
         }
-    })
+        </script>
 
-    defineEmits(['submit'])
-    </script>
+        <script setup>
+        import AppLayout from '@/Layouts/AppLayout.vue'
+        import { useForm } from '@inertiajs/vue3'
+        import CategoryForm from '@/Components/Categories/Form.vue'
 
-    <template>
-        <FormSection @submitted="$emit('submit')">
-            <template #title>
-                {{ updating ? 'Update Category' : 'Create Category' }}
-            </template>
-            <template #description>
-                {{ updating ? 'Update your category' : 'Create a new category' }}
-            </template>
-            <template #form>
-                <div class="col-span-6 sm:col-span-4">
-                    <InputLabel for="name" value="Name" />
-                    <TextInput
-                        id="name"
-                        v-model="form.name"
-                        type="text"
-                        class="mt-1 block w-full"
-                        autocomplete="name"
-                        required
-                    />
-                    <InputError :message="$page.props.errors.name" class="mt-2" />
-                </div>            
-            </template>
-            <template #actions>
-                <PrimaryButton>
-                    {{ updating ? 'Update' : 'Create' }}                
-                </PrimaryButton>
-            </template>
-        </FormSection>
-    </template>
-    ```
-15. mmmm
+        const props = defineProps({
+            category: {
+                type: Object,
+                required: true
+            }
+        })
+
+        const form = useForm({
+            name: props.category.name
+        })
+        </script>
+
+        <template>
+            <AppLayout title="Edit category">
+                <template #header>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Edit category
+                    </h2>
+                </template>
+                <div class="py-12 ">
+                    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div class="p-6 bg-white border-b border-gray-200">
+                            <CategoryForm 
+                                :updating="true" 
+                                :form="form" 
+                                @submit="form.put(route('categories.update', category.id))"
+                            />
+                        </div>
+                    </div>
+                </div>        
+            </AppLayout>
+        </template>
+        ```
+    4. Crear componente **Components/Categories/Form.vue**:
+        ```html title="resources\js\Components\Categories\Form.vue"
+        <script>
+        export default {
+            name: 'CategoriesForm'
+        }
+        </script>
+
+        <script setup>
+        import FormSection from '@/Components/FormSection.vue'
+        import InputError from '@/Components/InputError.vue'
+        import InputLabel from '@/Components/InputLabel.vue'
+        import PrimaryButton from '@/Components/PrimaryButton.vue'
+        import TextInput from '@/Components/TextInput.vue'
+
+        defineProps({
+            form: {
+                type: Object,
+                required: true
+            },
+            updating: {
+                type: Boolean,
+                required: false,
+                default: false
+            }
+        })
+
+        defineEmits(['submit'])
+        </script>
+
+        <template>
+            <FormSection @submitted="$emit('submit')">
+                <template #title>
+                    {{ updating ? 'Update Category' : 'Create Category' }}
+                </template>
+                <template #description>
+                    {{ updating ? 'Update your category' : 'Create a new category' }}
+                </template>
+                <template #form>
+                    <div class="col-span-6 sm:col-span-4">
+                        <InputLabel for="name" value="Name" />
+                        <TextInput
+                            id="name"
+                            v-model="form.name"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="name"
+                            required
+                        />
+                        <InputError :message="$page.props.errors.name" class="mt-2" />
+                    </div>            
+                </template>
+                <template #actions>
+                    <PrimaryButton>
+                        {{ updating ? 'Update' : 'Create' }}                
+                    </PrimaryButton>
+                </template>
+            </FormSection>
+        </template>
+        ```
+12. Diseñar las vistas para las lecciones:
+    1. Crear vista **Lessons/Index**:
+        ```html title="resources\js\Pages\Lessons\Index.vue"
+        ```
+    2. Crear vista **Lessons/Create**:
+        ```html title="resources\js\Pages\Lessons\Create.vue"
+        ```
+    3. Crear vista **Lessons/Edit**:
+        ```html title=""
+        ```
+    4. Crear componente **Components/Lessons/Form.vue**:
+        ```html title="resources\js\Components\Lessons\Form.vue"
+        ```
+    5. Crear componente **Components/Common/CollectionSelector**:
+        ```html title="resources\js\Components\Common\CollectionSelector.vue"
+        ```
+13. Diseñar las vistas para los roles:
+    1. Crear vista **Roles/Index**:
+        ```html title=""
+        ```
+    2. Crear vista **Roles/Create**:
+        ```html title=""
+        ```
+    3. Crear vista **Roles/Edit**:
+        ```html title=""
+        ```
+    4. Crear componente **Components/Roles/Form.vue**:
+        ```html title=""
+        ```
+14. mmmm
 
 
