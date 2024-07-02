@@ -814,18 +814,387 @@
 12. Diseñar las vistas para las lecciones:
     1. Crear vista **Lessons/Index**:
         ```html title="resources\js\Pages\Lessons\Index.vue"
+        <script>
+        export default {
+            name: 'LessonsIndex'
+        }
+        </script>
+
+        <script setup>
+        import AppLayout from '@/Layouts/AppLayout.vue'
+        import { Link } from '@inertiajs/vue3'
+        import { Inertia } from '@inertiajs/inertia'
+
+        defineProps({
+            lessons: {
+                type: Object,
+                required: true
+            }
+        })
+
+        const deleteLesson = (id) => {
+            if(confirm('Are you sure?')) {
+                Inertia.delete(route('lessons.destroy', id))
+            }
+        }
+        </script>
+
+        <template>
+            <AppLayout title="Index lesson">
+                <template #header>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Lessons
+                    </h2>
+                </template>
+                <div class="py-12 ">
+                    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div                 
+                            v-if="$page.props.user.permissions.includes('create lessons')"
+                            class="p-6 bg-white border-b border-gray-200"
+                        >
+                            <div class="flex justify-between">
+                                <Link 
+                                    :href="route('lessons.create')" 
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                >
+                                    Create lesson
+                                </Link>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex flex-col">
+                                <div class="overflow-x-auto sm:mx-0.5 lg:mx-0.5">
+                                    <div class="py-2 inline-block min-w-full sm:px-6 lg:px-8">
+                                        <div class="overflow-hidden">
+                                            <table class="min-w-full">
+                                                <thead class="bg-white border-b">
+                                                    <tr>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        #
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Name
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Edit
+                                                    </th>
+                                                    <th scope="col" class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                                                        Delete
+                                                    </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr class="bg-gray-100 border-b" v-for="lesson in lessons.data" :key="lesson.id">
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            {{ lesson.id }}
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            {{ lesson.name }}
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            <Link 
+                                                                v-if="$page.props.user.permissions.includes('update lessons')"
+                                                                :href="route('lessons.edit', lesson.id)" 
+                                                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            >
+                                                                Edit
+                                                            </Link>
+                                                        </td>
+                                                        <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
+                                                            <Link 
+                                                                v-if="$page.props.user.permissions.includes('delete lessons')"
+                                                                @click="deleteLesson(lesson.id)" 
+                                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                                                            >
+                                                                Delete
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-white border-b border-gray-200">
+                            <div class="flex justify-between mt-2">
+                                <Link 
+                                    v-if="lessons.current_page > 1"
+                                    :href="lessons.prev_page_url" 
+                                    class="py-2 px-4 rounded"
+                                >
+                                    PREV
+                                </Link>
+                                <div v-else></div>
+                                <Link 
+                                    v-if="lessons.current_page < lessons.last_page"
+                                    :href="lessons.next_page_url" 
+                                    class="py-2 px-4 rounded"
+                                >
+                                    NEXT
+                                </Link>
+                                <div v-else></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </AppLayout>
+        </template>        
         ```
     2. Crear vista **Lessons/Create**:
         ```html title="resources\js\Pages\Lessons\Create.vue"
+        <script>
+        export default {
+            name: 'LessonsCreate'
+        }
+        </script>
+
+        <script setup>
+        import AppLayout from '@/Layouts/AppLayout.vue'
+        import { useForm } from '@inertiajs/vue3'
+        import LessonForm from '@/Components/Lessons/Form.vue'
+
+        defineProps({
+            categories: {
+                type: Object,
+                required: true
+            },
+            levels: {
+                type: Object,
+                required: true
+            }
+        })
+
+        const form = useForm({
+            name: ''
+        })
+        </script>
+
+        <template>
+            <AppLayout title="Create lesson">
+                <template #header>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Create lesson
+                    </h2>
+                </template>
+                <div class="py-12 ">
+                    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div class="p-6 bg-white border-b border-gray-200">
+                            <LessonForm 
+                                :form="form" 
+                                :categories="categories"
+                                :levels="levels"
+                                @submit="form.post(route('lessons.store'))"
+                            />
+                        </div>
+                    </div>
+                </div>        
+            </AppLayout>
+        </template>        
         ```
     3. Crear vista **Lessons/Edit**:
         ```html title=""
         ```
     4. Crear componente **Components/Lessons/Form.vue**:
         ```html title="resources\js\Components\Lessons\Form.vue"
+        <script>
+        export default {
+            name: 'LessonsForm'
+        }
+        </script>
+
+        <script setup>
+        import FormSection from '@/Components/FormSection.vue'
+        import InputError from '@/Components/InputError.vue'
+        import InputLabel from '@/Components/InputLabel.vue'
+        import PrimaryButton from '@/Components/PrimaryButton.vue'
+        import TextInput from '@/Components/TextInput.vue'
+        import SecondaryButton from '@/Components/SecondaryButton.vue'
+        import CollectionSelector from '@/Components/Common/CollectionSelector.vue'
+        import { ref } from 'vue'
+
+        defineProps({
+            form: {
+                type: Object,
+                required: true
+            },
+            updating: {
+                type: Boolean,
+                required: false,
+                default: false
+            },
+            categories: {
+                type: Object,
+                required: true
+            },
+            levels: {
+                type: Object,
+                required: true
+            }
+        })
+
+        const categoriesSelected = ref([])
+
+        const onCategories = (_categories) => {
+            categoriesSelected.value = _categories
+        }
+
+        defineEmits(['submit'])
+        </script>
+
+        <template>
+            <FormSection @submitted="$emit('submit')">
+                <template #title>
+                    {{ updating ? 'Update Lesson' : 'Create Lesson' }}
+                </template>
+                <template #description>
+                    {{ updating ? 'Update your lesson' : 'Create a new lesson' }}
+                </template>
+                <template #form>
+                    <div class="col-span-6 sm:col-span-4">
+                        <InputLabel for="name" value="Name" />
+                        <TextInput
+                            id="name"
+                            v-model="form.name"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="name"
+                            required
+                        />
+                        <InputError :message="$page.props.errors.name" class="mt-2" />
+                    </div>
+                    <div class="col-span-6 sm:col-span-4">
+                        <InputLabel for="description" value="Description" />
+                        <TextInput
+                            id="description"
+                            v-model="form.description"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="description"
+                            required
+                        />
+                        <InputError :message="$page.props.errors.description" class="mt-2" />
+                    </div>
+                    <div class="col-span-6 sm:col-span-4">
+                        <InputLabel for="content_uri" value="Content uri" />
+                        <TextInput
+                            id="content_uri"
+                            v-model="form.content_uri"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="content_uri"
+                            required
+                        />
+                        <InputError :message="$page.props.errors.content_uri" class="mt-2" />
+                    </div>
+                    <div class="col-span-6 sm:col-span-4">
+                        <SecondaryButton
+                            type="button"
+                            class="mt-1 block w-full"
+                        >
+                            Upload PDF
+                        </SecondaryButton>
+                        <InputError :message="$page.props.errors.pdf_uri" class="mt-2" />
+                    </div>
+                    <div class="flex col-span-6 sm:col-span-4 w-full">
+                        <div class="w-1/2 mr-1">
+                            <InputLabel for="level_id" value="Nivel" />
+                            <select class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option 
+                                    v-for="level in levels" 
+                                    :key="level.id" 
+                                    :value="level.id" 
+                                    id="level_id"
+                                >
+                                    {{ level.name }}
+                                </option>
+                            </select>
+                            <InputError :message="$page.props.errors.level_id" class="mt-2" />
+                        </div>
+                        <div class="w-1/2 ml-1">
+                            <InputLabel for="categories" value="Categories" />
+                            <CollectionSelector 
+                                name="categories" 
+                                id="categories" 
+                                :collection="categories" 
+                                @onCategories="onCategories"
+                            />
+                        </div>
+                    </div>
+                </template>
+                <template #actions>
+                    <PrimaryButton>
+                        {{ updating ? 'Update' : 'Create' }}                
+                    </PrimaryButton>
+                </template>
+            </FormSection>
+        </template>        
         ```
     5. Crear componente **Components/Common/CollectionSelector**:
         ```html title="resources\js\Components\Common\CollectionSelector.vue"
+        <script setup>
+        import { ref } from 'vue'
+
+        defineProps({
+            collection: {
+                type: Array,
+                required: true
+            }
+        })
+
+        const currentSelection = ref(1)
+        const selection = ref([])
+        const emit = defineEmits(['onCategories'])
+
+        const handleAddToSelection = () => {
+            let alreadyExists = false
+            selection.value.forEach((item) => {
+                if (item.id === currentSelection.value.id) {
+                    alreadyExists = true
+                    return
+                }
+            })
+            if (alreadyExists) {
+                return
+            }
+            selection.value.push(currentSelection.value)
+            emit('onCategories', selection.value)
+        }
+
+        const handleRemoveSelection = (index) => {
+            selection.value = selection.value.filter((item) => item.id !== index)
+            emit('onCategories', selection.value)
+        }
+        </script>
+
+        <template>
+            <div class="w-full">
+                <div class="flex">
+                    <select v-model="currentSelection" class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                        <option v-for="(item, index) in collection" :key="index" :value="item">{{ item?.name }}</option>
+                    </select>
+                    <button 
+                        @click="handleAddToSelection" 
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-1"
+                    >
+                        Add
+                    </button>
+                </div>
+                <div>
+                    <ul>
+                        <li 
+                            v-for="(item) in selection" 
+                            :key="item.id"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-1 mt-1 mb-1"
+                        >
+                            {{ item.name }} 
+                            <span class="float-right cursor-pointer" @click="handleRemoveSelection(item.id)">X</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </template>        
         ```
 13. Diseñar las vistas para los roles:
     1. Crear vista **Roles/Index**:

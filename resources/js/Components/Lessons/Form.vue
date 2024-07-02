@@ -12,6 +12,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 import TextInput from '@/Components/TextInput.vue'
 import SecondaryButton from '@/Components/SecondaryButton.vue'
 import CollectionSelector from '@/Components/Common/CollectionSelector.vue'
+import { ref } from 'vue'
 
 defineProps({
     form: {
@@ -32,6 +33,12 @@ defineProps({
         required: true
     }
 })
+
+const categoriesSelected = ref([])
+
+const onCategories = (_categories) => {
+    categoriesSelected.value = _categories
+}
 
 defineEmits(['submit'])
 </script>
@@ -90,24 +97,30 @@ defineEmits(['submit'])
                 </SecondaryButton>
                 <InputError :message="$page.props.errors.pdf_uri" class="mt-2" />
             </div>
-            <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="level_id" value="Nivel" />
-                <select>
-                    <option 
-                        v-for="level in levels" 
-                        :key="level.id" 
-                        :value="level.id" 
-                        id="level_id"
-                    >
-                        {{ level.name }}
-                    </option>
-                </select>
-                <InputError :message="$page.props.errors.level_id" class="mt-2" />
-            </div>
-            <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="categories" value="Categories" />
-                <CollectionSelector :collection="categories" />
-                <!-- <InputError :message="$page.props.errors.level_id" class="mt-2" /> -->
+            <div class="flex col-span-6 sm:col-span-4 w-full">
+                <div class="w-1/2 mr-1">
+                    <InputLabel for="level_id" value="Nivel" />
+                    <select class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                        <option 
+                            v-for="level in levels" 
+                            :key="level.id" 
+                            :value="level.id" 
+                            id="level_id"
+                        >
+                            {{ level.name }}
+                        </option>
+                    </select>
+                    <InputError :message="$page.props.errors.level_id" class="mt-2" />
+                </div>
+                <div class="w-1/2 ml-1">
+                    <InputLabel for="categories" value="Categories" />
+                    <CollectionSelector 
+                        name="categories" 
+                        id="categories" 
+                        :collection="categories" 
+                        @onCategories="onCategories"
+                    />
+                </div>
             </div>
         </template>
         <template #actions>
